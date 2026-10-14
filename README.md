@@ -16,7 +16,7 @@
 <p align="center">
   <img alt="Versión 0.0.2" src="https://img.shields.io/badge/versión-0.0.2-08796D">
   <img alt="Python 3.11 o superior" src="https://img.shields.io/badge/Python-3.11%2B-3776AB">
-  <img alt="36 pruebas aprobadas localmente" src="https://img.shields.io/badge/check_local-36_pruebas_aprobadas-237650">
+  <img alt="44 pruebas aprobadas localmente" src="https://img.shields.io/badge/check_local-44_pruebas_aprobadas-237650">
   <img alt="3 guiones sintéticos y 8 pruebas LLM" src="https://img.shields.io/badge/catálogo-3_guiones_%2B_8_pruebas_LLM-254D42">
   <img alt="Iconos Lucide" src="https://img.shields.io/badge/iconos-Lucide-438D78">
   <img alt="Desarrollo activo" src="https://img.shields.io/badge/estado-desarrollo_activo-856016">
@@ -73,7 +73,7 @@ auditor_llm:
     scripted: 3 guiones de referencia, sin LLM
     llm_text: 8 pruebas de salida de texto
   evidencia: JSONL, JSON y resumen HTML
-  verificación_local: 36 pruebas aprobadas
+  verificación_local: 44 pruebas aprobadas
   acceso_web: solo loopback
   estado: desarrollo activo
 ```
@@ -93,6 +93,15 @@ auditor_llm:
 - [Estado y próximos hitos](#estado-y-próximos-hitos)
 - [Desarrollo y contribuciones](#desarrollo-y-contribuciones)
 - [Autor y licencia](#autor-y-licencia)
+
+## Desplegar la aplicación web
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/heindall92/auditor_llm)
+
+Instancia privada con usuario `auditor`, contraseña aleatoria generada en Render,
+servidor Waitress y Docker sin privilegios. El Blueprint utiliza un servicio gratuito;
+las evidencias son efímeras y deben exportarse antes de reiniciar. Sin claves LLM por defecto.
+[Instrucciones desde el móvil, configuración y límites](docs/DEPLOYMENT.md).
 
 ## Arranque rápido
 
@@ -126,7 +135,7 @@ Abre **[http://127.0.0.1:8765](http://127.0.0.1:8765)** en el mismo equipo.
 | `serve --output output/web` | Selecciona el directorio de evidencias. |
 | `Ctrl+C` | Cierra el servidor. |
 
-La dirección `127.0.0.1` corresponde al dispositivo que abre el navegador. Para usar el backend desde un móvil distinto al equipo que lo ejecuta, hace falta un despliegue con autenticación y una configuración de acceso adecuada. La versión actual no incluye ese despliegue. GitHub Pages por sí solo no ejecuta el servidor Python.
+La dirección `127.0.0.1` corresponde al dispositivo que abre el navegador. Para usar el backend desde un móvil distinto al equipo que lo ejecuta, hace falta un despliegue con autenticación y una configuración de acceso adecuada. Esta versión incluye Docker y un Blueprint de Render para una instancia privada. GitHub Pages por sí solo no ejecuta el servidor Python. Ver [despliegue](docs/DEPLOYMENT.md).
 
 ## Cómo funciona
 
@@ -335,7 +344,8 @@ El proceso del runner limita duración y estado del guion. **No es un sandbox pa
 | Núcleo y CLI | 21 | Tres veredictos, aislamiento, acciones bloqueadas, cobertura, errores, timeout, eventos parciales, límites, esquemas y códigos de salida |
 | Adaptador LLM de texto | 9 | Oráculos, fuga literal, respuesta incompleta, errores, redacción de clave reflejada y transporte contra un doble HTTP local |
 | Web y exportaciones | 6 | Bootstrap sin clave, recursos estáticos, bloqueo de rutas, Host/Origin/CSRF, trabajo completo, límites y escape HTML |
-| **Total local** | **36** | **Aprobadas en el entorno de desarrollo** |
+| Hosting privado WSGI | 8 | Autenticación, límites, Host/Origin/CSRF, destinos y flujo de auditoría |
+| **Total local** | **44** | **Aprobadas en el entorno de desarrollo** |
 
 Además, se comprobó la sintaxis de JavaScript con `node --check` y la inclusión de frontend, iconos y fixtures en el paquete Python.
 
@@ -350,7 +360,7 @@ La suite usa fixtures, mocks y servidores de loopback; no necesita contactar pro
 
 ## Seguridad y privacidad
 
-- **Acceso local.** El servidor se enlaza a `127.0.0.1`; comprueba `Host`, `Origin` y token CSRF en las mutaciones.
+- **Acceso protegido.** El modo local usa `127.0.0.1`. El modo alojado requiere contraseña y un proxy HTTPS, con comprobaciones de `Host`, `Origin` y token CSRF; es una instancia de un solo operador.
 - **Recursos propios.** La aplicación sirve sus scripts, estilos e iconos desde el servidor local, con CSP same-origin y sin CDN, fuentes remotas ni analítica.
 - **Credencial en el backend.** La clave se obtiene del entorno y no se entrega al navegador. Se envía al endpoint que el operador selecciona y confirma.
 - **Destino acotado.** HTTPS remoto o HTTP loopback; sin credenciales en la URL, query ni fragmentos. No se siguen redirecciones ni proxies del entorno.

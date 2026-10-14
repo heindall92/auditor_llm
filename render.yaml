@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: auditor-llm
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeployTrigger: off
+    envVars:
+      - key: AUDITOR_ADMIN_PASSWORD
+        generateValue: true
+      - key: AUDITOR_OUTPUT_DIR
+        value: /app/output/web

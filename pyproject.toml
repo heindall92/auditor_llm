@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "auditor-llm"
-version = "0.0.2"
+version = "0.0.3"
 description = "Local security lab with scripted evidence evaluation and bounded LLM text probes"
 authors = [{name = "Yoandy Ramírez Delgado"}]
 requires-python = ">=3.11"
@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest==8.4.2"]
+hosting = ["waitress==3.0.2"]
 
 [project.scripts]
 auditor-llm = "agent_audit.cli:main"

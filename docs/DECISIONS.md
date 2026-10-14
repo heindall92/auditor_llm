@@ -21,3 +21,12 @@ comparación individual. MCP e instrumentación de agentes siguen pendientes.
 El contrato de texto declara explícitamente su cobertura y no modifica el significado
 del adaptador sintético. Ver STATUS.md y DESIGN_SYSTEM.md para el estado actual.
 
+
+## Despliegue autorizado 0.0.3
+
+El propietario pidió alojar la aplicación completa para usarla desde el móvil.
+Se conserva el núcleo Python y se añade WSGI con Waitress opcional, Docker y un
+Blueprint de Render. La instancia es privada y de un solo operador; no se afirma
+autenticación multiusuario ni persistencia en el plan gratuito. Se reutilizan las
+rutas locales, y el modo remoto fija endpoint/modelo desde el servidor para no
+enviar su clave a una URL elegida desde el navegador.

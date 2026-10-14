@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auditor-llm"
+version = "0.0.2"
+description = "Local security lab with scripted evidence evaluation and bounded LLM text probes"
+authors = [{name = "Yoandy Ramírez Delgado"}]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.2"]
+
+[project.scripts]
+auditor-llm = "agent_audit.cli:main"
+agent-audit = "agent_audit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agent_audit = ["static/*", "static/icons/*", "data/*.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+

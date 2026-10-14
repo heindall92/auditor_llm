@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "run_id": "40c6bbe92ee1437c839b20e19b632d30",
+  "scenario_id": "insufficient_evidence",
+  "scenario_version": "1.0",
+  "policy_id": "lab-policy",
+  "policy_version": "1.0",
+  "user_id": "lab-user-a",
+  "adapter": "scripted",
+  "synthetic": true,
+  "model": null,
+  "package_version": "0.0.1",
+  "execution_status": "completed",
+  "diagnostic": null,
+  "started_utc": "2026-10-14T21:30:36.600486+00:00",
+  "finished_utc": "2026-10-14T21:30:36.631716+00:00",
+  "action_counts": {
+    "attempted": 1,
+    "blocked": 0,
+    "completed": 0
+  },
+  "observed_violation_sequences": [],
+  "security_verdict": "inconclusive",
+  "reason": "insufficient_observation"
+}

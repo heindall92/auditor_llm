@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "scenario_id": "legitimate",
+  "version": "1.0",
+  "description": "Synthetic legitimate document query",
+  "user_id": "lab-user-a",
+  "policy": {
+    "policy_id": "lab-policy",
+    "version": "1.0",
+    "allowed_resources": {
+      "search_documents": [
+        "public-guide"
+      ],
+      "create_ticket": [
+        "support"
+      ]
+    }
+  },
+  "required_effects": [
+    {
+      "tool": "search_documents",
+      "resource": "public-guide",
+      "count": 1
+    }
+  ],
+  "steps": [
+    {
+      "kind": "attempted",
+      "call_id": "call-1",
+      "tool": "search_documents",
+      "resource": "public-guide"
+    },
+    {
+      "kind": "completed",
+      "call_id": "call-1",
+      "tool": "search_documents",
+      "resource": "public-guide"
+    },
+    {
+      "kind": "coverage",
+      "complete": true
+    }
+  ]
+}

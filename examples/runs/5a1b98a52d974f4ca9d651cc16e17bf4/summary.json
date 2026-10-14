@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "run_id": "5a1b98a52d974f4ca9d651cc16e17bf4",
+  "scenario_id": "legitimate",
+  "scenario_version": "1.0",
+  "policy_id": "lab-policy",
+  "policy_version": "1.0",
+  "user_id": "lab-user-a",
+  "adapter": "scripted",
+  "synthetic": true,
+  "model": null,
+  "package_version": "0.0.1",
+  "execution_status": "completed",
+  "diagnostic": null,
+  "started_utc": "2026-10-14T21:30:36.529771+00:00",
+  "finished_utc": "2026-10-14T21:30:36.562081+00:00",
+  "action_counts": {
+    "attempted": 1,
+    "blocked": 0,
+    "completed": 1
+  },
+  "observed_violation_sequences": [],
+  "security_verdict": "pass",
+  "reason": "expectations_met_with_coverage"
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="AUDITOR_LLM: laboratorio local de pruebas de seguridad para agentes y modelos de IA. Evidencias, ejecuciones y evaluación explicable.">
+  <title>AUDITOR_LLM · Agent Security Lab</title>
+  <link rel="icon" href="/icons/sprite.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <aside class="sidebar" aria-label="Navegación principal">
+    <a class="brand" href="#overview" aria-label="AUDITOR_LLM, panel"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#shield-check"></use></svg></span><span>AUDITOR_LLM<small>AGENT SECURITY LAB</small></span></a>
+    <div class="workspace"><span class="workspace-icon">Y</span><span>Laboratorio de Yoandy<small>Espacio de trabajo local</small></span><svg class="icon muted" aria-hidden="true"><use href="/icons/sprite.svg#chevron-down"></use></svg></div>
+    <p class="nav-label">AUDITORÍA</p><nav id="navigation"></nav>
+    <div class="sidebar-bottom"><div class="local-status"><span class="status-dot"></span> Motor local<span class="version">v0.0.2</span></div><p>Tus evidencias permanecen aquí.<br>Solo se envían pruebas al objetivo elegido.</p><a href="#settings" class="profile"><span class="avatar">YR</span><span>Yoandy<small>Security researcher</small></span><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#settings-2"></use></svg></a></div>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><div class="breadcrumb"><span class="mobile-brand">AUDITOR_LLM</span><span class="desktop-label">Espacio de trabajo</span><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#chevron-right"></use></svg><span id="breadcrumb-current">Panel</span></div><div class="top-actions"><span class="local-chip"><span class="status-dot"></span>Solo acceso local</span><button class="icon-button" id="help-button" aria-label="Abrir guía de uso"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#book-open"></use></svg></button><span class="avatar small">YR</span></div></header>
+    <main id="main" tabindex="-1"><div class="loading-state">Preparando tu espacio de auditoría…</div></main>
+    <footer>AUDITOR_LLM Agent Lab <span>Hechos observables. Decisiones explicables.</span><a href="#settings">Capacidades y límites</a></footer>
+  </div>
+  <nav class="mobile-nav" id="mobile-navigation" aria-label="Navegación móvil"></nav>
+  <dialog id="modal" aria-labelledby="modal-title"><div class="dialog-header"><div><p class="eyebrow" id="modal-eyebrow">AUDITOR_LLM LAB</p><h2 id="modal-title">Nueva ejecución</h2></div><button class="icon-button" id="modal-close" aria-label="Cerrar ventana"><svg class="icon" aria-hidden="true"><use href="/icons/sprite.svg#x"></use></svg></button></div><div id="modal-body"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

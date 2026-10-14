@@ -1,4 +1,4 @@
-"""Local-only HTTP bridge. No remote hosting or browser credentials."""
+"""Shared audit routes and the default loopback-only development server."""
 from copy import deepcopy
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,7 +19,8 @@ HERE = Path(__file__).resolve().parent
 
 
 class State:
-    def __init__(self, output):
+    def __init__(self, output, public_origin=None):
+        self.public_origin = public_origin
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
         self.token = secrets.token_urlsafe(32)
@@ -57,6 +58,10 @@ class State:
         if payload.get("custom_scenario") is not None:
             custom = Scenario.from_dict(payload["custom_scenario"])
         target = validate_target(payload.get("target")) if mode == "llm_text" else None
+        if mode == "llm_text" and self.public_origin:
+            configured = os.environ.get("AEGIS_LLM_URL", "")
+            if not configured or target["endpoint"] != configured or target["model"] != os.environ.get("AEGIS_LLM_MODEL", ""):
+                raise ValidationError("En alojamiento, el endpoint y modelo deben coincidir con la configuración del servidor.")
         if mode == "llm_text" and payload.get("authorized") is not True:
             raise ValidationError("Confirma que el endpoint está autorizado para las pruebas.")
         available = {p["id"] for p in PROBES} if mode == "llm_text" else {"legitimate", "unauthorized_effect", "insufficient_evidence"} | ({"custom"} if custom else set())
@@ -103,94 +108,98 @@ def report_html(runs):
             '<table><thead><tr><th>Prueba</th><th>Adaptador</th><th>Modelo</th><th>Ejecución</th><th>Resultado</th><th>Motivo</th></tr></thead><tbody>' + rows + '</tbody></table></html>')
 
 
-def make_handler(state):
-    class Handler(BaseHTTPRequestHandler):
-        def log_message(self, *args):
-            pass
+class AuditRoutes:
+    def log_message(self, *args):
+        pass
 
-        def valid_host(self):
-            port = self.server.server_port
-            return self.headers.get("Host") in {f"127.0.0.1:{port}", f"localhost:{port}"}
+    def valid_host(self):
+        port = self.server.server_port
+        return self.headers.get("Host") in {f"127.0.0.1:{port}", f"localhost:{port}"}
 
-        def send(self, status, data, content_type="application/json; charset=utf-8"):
-            body = json.dumps(data, ensure_ascii=False).encode() if content_type.startswith("application/json") else data if isinstance(data, bytes) else data.encode()
-            self.send_response(status)
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
-            self.end_headers()
-            self.wfile.write(body)
+    def send(self, status, data, content_type="application/json; charset=utf-8"):
+        body = json.dumps(data, ensure_ascii=False).encode() if content_type.startswith("application/json") else data if isinstance(data, bytes) else data.encode()
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+        self.end_headers()
+        self.wfile.write(body)
 
-        def do_GET(self):
-            if not self.valid_host():
-                return self.send(403, {"error": "Host no permitido."})
-            path = urlsplit(self.path).path
-            if path == "/api/bootstrap":
-                with state.lock:
-                    job = deepcopy(state.job)
-                return self.send(200, {"csrf_token": state.token, "job": job, "probes": PROBES,
-                                      "key_configured": bool(os.environ.get("AEGIS_LLM_API_KEY")),
-                                      "default_endpoint": os.environ.get("AEGIS_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions"),
-                                      "default_model": os.environ.get("AEGIS_LLM_MODEL", ""), "version": "0.0.2"})
-            if path == "/api/runs":
-                return self.send(200, state.runs())
-            if path == "/api/job":
-                with state.lock:
-                    return self.send(200, deepcopy(state.job))
-            if path == "/api/report":
-                return self.send(200, report_html(state.runs()), "text/html; charset=utf-8")
-            if path.startswith("/api/runs/"):
-                rid = path.removeprefix("/api/runs/")
-                if not re.fullmatch("[a-f0-9]{32}", rid):
-                    return self.send(404, {"error": "Ejecución no encontrada."})
-                directory = state.output / rid
-                try:
-                    summary = json.loads((directory / "summary.json").read_text())
-                    events = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
-                    return self.send(200, {"summary": summary, "events": events})
-                except (OSError, ValueError):
-                    return self.send(404, {"error": "Ejecución no encontrada."})
-            if path.startswith("/api/fixture/"):
-                name = path.removeprefix("/api/fixture/")
-                if name in {"legitimate", "unauthorized_effect", "insufficient_evidence"}:
-                    return self.send(200, load_scenario(HERE / "data" / (name + ".json")).to_dict())
-                return self.send(404, {"error": "Escenario no encontrado."})
-            relative = "index.html" if path == "/" else path.lstrip("/")
-            static = (HERE / "static" / relative).resolve()
-            if not static.is_relative_to((HERE / "static").resolve()) or not static.is_file():
-                return self.send(404, {"error": "Archivo no encontrado."})
-            types = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml"}
-            return self.send(200, static.read_bytes(), types.get(static.suffix, "text/plain; charset=utf-8"))
-
-        def do_POST(self):
-            origins = {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}
-            if not self.valid_host() or self.headers.get("Origin") not in origins or not secrets.compare_digest(self.headers.get("X-Aegis-CSRF", ""), state.token):
-                return self.send(403, {"error": "Petición local no autorizada."})
-            if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
-                return self.send(415, {"error": "Se requiere JSON."})
+    def do_GET(self):
+        if not self.valid_host():
+            return self.send(403, {"error": "Host no permitido."})
+        path = urlsplit(self.path).path
+        if path == "/api/bootstrap":
+            with self.state.lock:
+                job = deepcopy(self.state.job)
+            return self.send(200, {"csrf_token": self.state.token, "job": job, "probes": PROBES,
+                                  "key_configured": bool(os.environ.get("AEGIS_LLM_API_KEY")),
+                                  "default_endpoint": os.environ.get("AEGIS_LLM_URL", "" if self.state.public_origin else "http://127.0.0.1:11434/v1/chat/completions"),
+                                  "default_model": os.environ.get("AEGIS_LLM_MODEL", ""), "version": "0.0.3", "hosted": bool(self.state.public_origin)})
+        if path == "/api/runs":
+            return self.send(200, self.state.runs())
+        if path == "/api/job":
+            with self.state.lock:
+                return self.send(200, deepcopy(self.state.job))
+        if path == "/api/report":
+            return self.send(200, report_html(self.state.runs()), "text/html; charset=utf-8")
+        if path.startswith("/api/runs/"):
+            rid = path.removeprefix("/api/runs/")
+            if not re.fullmatch("[a-f0-9]{32}", rid):
+                return self.send(404, {"error": "Ejecución no encontrada."})
+            directory = self.state.output / rid
             try:
-                length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= 1048576:
-                    raise ValidationError("Entrada vacía o demasiado grande.")
-                data = json.loads(self.rfile.read(length), object_pairs_hook=no_duplicates)
-                if self.path == "/api/run":
-                    return self.send(202, state.start(data))
-                if self.path == "/api/validate":
-                    return self.send(200, {"valid": True, "scenario": Scenario.from_dict(data).to_dict()})
-                if self.path == "/api/cancel":
-                    with state.lock:
-                        if state.job and state.job["status"] == "running":
-                            state.job["cancel_requested"] = True
-                    return self.send(200, {"message": "La ejecución se detendrá al terminar la petición en curso."})
-                return self.send(404, {"error": "Operación no encontrada."})
-            except (ValidationError, EndpointError) as exc:
-                return self.send(400, {"error": str(exc)})
-            except (ValueError, TypeError, RecursionError):
-                return self.send(400, {"error": "JSON no válido."})
+                summary = json.loads((directory / "summary.json").read_text())
+                events = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
+                return self.send(200, {"summary": summary, "events": events})
+            except (OSError, ValueError):
+                return self.send(404, {"error": "Ejecución no encontrada."})
+        if path.startswith("/api/fixture/"):
+            name = path.removeprefix("/api/fixture/")
+            if name in {"legitimate", "unauthorized_effect", "insufficient_evidence"}:
+                return self.send(200, load_scenario(HERE / "data" / (name + ".json")).to_dict())
+            return self.send(404, {"error": "Escenario no encontrado."})
+        relative = "index.html" if path == "/" else path.lstrip("/")
+        static = (HERE / "static" / relative).resolve()
+        if not static.is_relative_to((HERE / "static").resolve()) or not static.is_file():
+            return self.send(404, {"error": "Archivo no encontrado."})
+        types = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml"}
+        return self.send(200, static.read_bytes(), types.get(static.suffix, "text/plain; charset=utf-8"))
 
+    def do_POST(self):
+        origins = {self.state.public_origin} if self.state.public_origin else {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}
+        if not self.valid_host() or self.headers.get("Origin") not in origins or not secrets.compare_digest(self.headers.get("X-Aegis-CSRF", ""), self.state.token):
+            return self.send(403, {"error": "Petición no autorizada."})
+        if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+            return self.send(415, {"error": "Se requiere JSON."})
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= 1048576:
+                raise ValidationError("Entrada vacía o demasiado grande.")
+            data = json.loads(self.rfile.read(length), object_pairs_hook=no_duplicates)
+            if self.path == "/api/run":
+                return self.send(202, self.state.start(data))
+            if self.path == "/api/validate":
+                return self.send(200, {"valid": True, "scenario": Scenario.from_dict(data).to_dict()})
+            if self.path == "/api/cancel":
+                with self.state.lock:
+                    if self.state.job and self.state.job["status"] == "running":
+                        self.state.job["cancel_requested"] = True
+                return self.send(200, {"message": "La ejecución se detendrá al terminar la petición en curso."})
+            return self.send(404, {"error": "Operación no encontrada."})
+        except (ValidationError, EndpointError) as exc:
+            return self.send(400, {"error": str(exc)})
+        except (ValueError, TypeError, RecursionError):
+            return self.send(400, {"error": "JSON no válido."})
+
+
+def make_handler(state):
+    class Handler(AuditRoutes, BaseHTTPRequestHandler):
+        pass
+    Handler.state = state
     return Handler
 
 
